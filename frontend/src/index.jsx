@@ -4,6 +4,7 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+document.documentElement.setAttribute('data-theme', 'light');
 
 root.render(
   <React.StrictMode>
