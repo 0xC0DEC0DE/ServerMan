@@ -8,7 +8,7 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ServerCon is a full-stack web application for managing and monitoring CCS 
-(Cloud Computing Service) servers. The system provides a modern dashboard 
+(Calloway Compute Service) servers. The system provides a modern dashboard 
 interface for server management, user administration, and real-time monitoring
 capabilities.
 
