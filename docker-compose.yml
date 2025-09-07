@@ -4,9 +4,6 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: servercon_clickhouse
-    ports:
-      - "9000:9000"    # Native protocol
-      - "8123:8123"    # HTTP interface
     environment:
       CLICKHOUSE_DB: default
       CLICKHOUSE_USER: default
@@ -30,10 +27,8 @@ services:
   app:
     build: .
     container_name: servercon_app
-    ports:
-      - "8080:8080"
     environment:
-      - CLICKHOUSE_DSN=clickhouse://default:@servercon_clickhouse:9000/default
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
       - SERVER_MANAGEMENT_KEY1=${SERVER_MANAGEMENT_KEY1}
       - SERVER_MANAGEMENT_KEY2=${SERVER_MANAGEMENT_KEY2}
       - SERVER_MANAGEMENT_KEY3=${SERVER_MANAGEMENT_KEY3}
