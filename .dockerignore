@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.dev
+
+# Documentation
+README.md
+README.txt
+*.md
+
+# Node modules (if any)
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+servercon
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Logs
+*.log
+
+# Test files
+*_test.go
+test/
+
+# Coverage reports
+*.cover
+coverage.txt
+
+# Temporary files
+*.tmp
+*.temp

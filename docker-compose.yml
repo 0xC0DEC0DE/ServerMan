@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: servercon_clickhouse
+    ports:
+      - "9000:9000"    # Native protocol
+      - "8123:8123"    # HTTP interface
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - servercon_network
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  app:
+    build: .
+    container_name: servercon_app
+    ports:
+      - "8080:8080"
+    environment:
+      - CLICKHOUSE_DSN=clickhouse://default:@servercon_clickhouse:9000/default
+      - SERVER_MANAGEMENT_KEY1=${SERVER_MANAGEMENT_KEY1}
+      - SERVER_MANAGEMENT_KEY2=${SERVER_MANAGEMENT_KEY2}
+      - SERVER_MANAGEMENT_KEY3=${SERVER_MANAGEMENT_KEY3}
+      - SERVER_MANAGEMENT_KEY4=${SERVER_MANAGEMENT_KEY4}
+      - SERVER_MANAGEMENT_URL=${SERVER_MANAGEMENT_URL}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - servercon_network
+    restart: unless-stopped
+
+volumes:
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+
+networks:
+  servercon_network:
+    driver: bridge
