@@ -1,1 +1,5 @@
 @import "bulma/css/bulma.css";
+
+:root {
+  color-scheme: light;
+}
