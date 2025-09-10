@@ -743,7 +743,6 @@ func (s *SyncService) parseVncConsoleCredentials(msg string, serverID int) api.V
 
 	if creds.Port == 0 || creds.Password == "" {
 		// Set the VNC to be enabled
-		// ie, curl -X POST https://api.ssdnodes.com/servers/1234/console/enable -H "Authorization: Bearer 123456789123456789123456789123456789"
 		log.Printf("Incomplete VNC credentials parsed for server %d: port=%d, password=%s, reenabling console server", serverID, creds.Port, creds.Password)
 		req, err := http.NewRequest("POST", fmt.Sprintf("/servers/%d/console/enable", serverID), nil)
 		if err != nil {

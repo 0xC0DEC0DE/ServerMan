@@ -158,6 +158,14 @@ func main() {
 		api_routes.GET("/apps", func(c *gin.Context) {
 			api.GetApps(c, ch)
 		})
+
+		// Management API routes
+		api_routes.POST("/server/:id/action/:action", api.ServerAction)
+		api_routes.POST("/server/:id/reinstall", api.ReinstallServer)
+		api_routes.POST("/server/:id/restore-snapshot", api.RestoreSnapshot)
+		api_routes.POST("/server/:id/reset-password", api.ResetRootPassword)
+		api_routes.POST("/server/:id/console/:action", api.ChangeConsoleStatus)
+
 		api_routes.POST("/admin/sync", api.TriggerSync(ch, syncService.ManualSync))
 		api_routes.GET("/admin/api-keys/status", api.GetAPIKeyStatus(ch, syncService.GetAPIKeyStatus))
 		api_routes.GET("/admin/users", api.GetAllUsers(ch))

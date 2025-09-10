@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import DynamicVNCViewer from './VncConsole';
+import ReinstallModal from './ReinstallModal';
+import SnapshotModal from './SnapshotModal';
 
 export default function ServerItem({ serverId, serverName }) {
   const [details, setDetails] = useState(null);
@@ -8,8 +10,13 @@ export default function ServerItem({ serverId, serverName }) {
   const [loading, setLoading] = useState(true);
 
   const [showConsole, setShowConsole] = useState(false);
-  const [credentials, setCredentials] = useState<{ password: string } | null>(null);
+  const [credentials, setCredentials] = useState(null);
   const [loadingCreds, setLoadingCreds] = useState(false);
+  
+  // State for management actions
+  const [actionLoading, setActionLoading] = useState({});
+  const [showReinstallModal, setShowReinstallModal] = useState(false);
+  const [showSnapshotModal, setShowSnapshotModal] = useState(false);
 
   // Fetch server details
   useEffect(() => {
@@ -54,7 +61,101 @@ export default function ServerItem({ serverId, serverName }) {
     pingServerName();
   }, [serverName]);
 
-  // Fetch VNC credentials
+  // Server management actions
+  const handleServerAction = async (action) => {
+    const actionName = action.charAt(0).toUpperCase() + action.slice(1);
+    
+    if (!confirm(`Are you sure you want to ${action} the server?`)) {
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, [action]: true }));
+    
+    try {
+      const response = await fetch(`/api/server/${serverId}/action/${action}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`${actionName} command sent successfully. Check the server status for updates.`);
+      } else {
+        alert(`Error: ${result.error || `Failed to ${action} server`}`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing server:`, error);
+      alert(`Failed to ${action} server`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [action]: false }));
+    }
+  };
+
+  const handleReinstall = (result) => {
+    alert('Reinstall command sent successfully. The process will take between 5-10 minutes. Check your dashboard for updates.');
+  };
+
+  const handlePasswordReset = async () => {
+    if (!confirm('Are you sure you want to reset the root password? This will restart the server.')) {
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, resetPassword: true }));
+    
+    try {
+      const response = await fetch(`/api/server/${serverId}/reset-password`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert('Password reset command sent successfully. The server will restart and a new password will be generated. Check the server credentials after restart.');
+      } else {
+        alert(`Error: ${result.error || 'Failed to reset password'}`);
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Failed to reset password');
+    } finally {
+      setActionLoading(prev => ({ ...prev, resetPassword: false }));
+    }
+  };
+
+  const handleSnapshotRestore = (result) => {
+    alert('Snapshot restoration command sent successfully. The process will take some time. Check your dashboard for updates.');
+  };
+
+  const handleConsoleToggle = async (action) => {
+    const actionText = action === 'enable' ? 'enable' : 'disable';
+    if (!confirm(`Are you sure you want to ${actionText} the console? This will force a server restart.`)) {
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, console: true }));
+    
+    try {
+      const response = await fetch(`/api/server/${serverId}/console/${action}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Console ${actionText} command sent successfully. The server will restart to apply changes.`);
+      } else {
+        alert(`Error: ${result.error || `Failed to ${actionText} console`}`);
+      }
+    } catch (error) {
+      console.error(`Error ${actionText}ing console:`, error);
+      alert(`Failed to ${actionText} console`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, console: false }));
+    }
+  };
   const fetchCredentials = async () => {
     setLoadingCreds(true);
     try {
@@ -97,8 +198,69 @@ export default function ServerItem({ serverId, serverName }) {
                   <strong className="mt-2 mb-0-tablet">{serverName}</strong>
 
                   <span className="ml-auto buttons are-small">
-                    <button className="button is-danger is-light">Shutdown</button>
-                    <button className="button is-warning is-light">Reboot</button>
+                    <button 
+                      className={`button is-danger is-light ${actionLoading.stop ? 'is-loading' : ''}`}
+                      onClick={() => handleServerAction('stop')}
+                      disabled={actionLoading.stop}
+                    >
+                      Shutdown
+                    </button>
+                    <button 
+                      className={`button is-warning is-light ${actionLoading.restart ? 'is-loading' : ''}`}
+                      onClick={() => handleServerAction('restart')}
+                      disabled={actionLoading.restart}
+                    >
+                      Reboot
+                    </button>
+                    <div className="dropdown is-hoverable">
+                      <div className="dropdown-trigger">
+                        <button className="button is-info is-light">
+                          <span>More Actions</span>
+                          <span className="icon is-small">
+                            <span>▼</span>
+                          </span>
+                        </button>
+                      </div>
+                      <div className="dropdown-menu">
+                        <div className="dropdown-content">
+                          <a 
+                            className="dropdown-item"
+                            onClick={() => setShowReinstallModal(true)}
+                          >
+                            <span>🔄 Reinstall Server</span>
+                          </a>
+                          <a 
+                            className="dropdown-item"
+                            onClick={() => setShowSnapshotModal(true)}
+                          >
+                            <span>📸 Restore Snapshot</span>
+                          </a>
+                          <hr className="dropdown-divider" />
+                          <a 
+                            className={`dropdown-item ${actionLoading.start ? 'has-text-grey' : ''}`}
+                            onClick={() => !actionLoading.start && handleServerAction('start')}
+                          >
+                            <span>▶️ Start Server</span>
+                            {actionLoading.start && <span className="is-pulled-right">⏳</span>}
+                          </a>
+                          <a 
+                            className={`dropdown-item ${actionLoading.resetPassword ? 'has-text-grey' : ''}`}
+                            onClick={() => !actionLoading.resetPassword && handlePasswordReset()}
+                          >
+                            <span>🔑 Reset Root Password</span>
+                            {actionLoading.resetPassword && <span className="is-pulled-right">⏳</span>}
+                          </a>
+                          <hr className="dropdown-divider" />
+                          <a 
+                            className={`dropdown-item ${actionLoading.console ? 'has-text-grey' : ''}`}
+                            onClick={() => !actionLoading.console && handleConsoleToggle(details?.vncstatus === 'enabled' ? 'disable' : 'enable')}
+                          >
+                            <span>🖥️ {details?.vncstatus === 'enabled' ? 'Disable' : 'Enable'} Console</span>
+                            {actionLoading.console && <span className="is-pulled-right">⏳</span>}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
                     <button
                       className={`button is-light ${loadingCreds ? 'is-loading' : ''}`}
                       onClick={fetchCredentials}
@@ -182,6 +344,24 @@ export default function ServerItem({ serverId, serverName }) {
           </div>
         </div>
       )}
+
+      {/* Reinstall Modal */}
+      <ReinstallModal
+        isOpen={showReinstallModal}
+        onClose={() => setShowReinstallModal(false)}
+        serverId={serverId}
+        serverName={serverName}
+        onReinstall={handleReinstall}
+      />
+
+      {/* Snapshot Restore Modal */}
+      <SnapshotModal
+        isOpen={showSnapshotModal}
+        onClose={() => setShowSnapshotModal(false)}
+        serverId={serverId}
+        serverName={serverName}
+        onRestore={handleSnapshotRestore}
+      />
     </>
   );
 }
