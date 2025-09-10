@@ -140,7 +140,7 @@ func GetManagementClient() *ManagementAPIClient {
 
 		managementClient = &ManagementAPIClient{
 			baseURL:       os.Getenv("SERVER_MANAGEMENT_URL"),
-			client:        &http.Client{Timeout: 30 * time.Second},
+			client:        &http.Client{Timeout: 600 * time.Second},
 			lruKeyManager: NewLRUAPIKeyManager(apiKeys),
 		}
 	})
@@ -184,9 +184,9 @@ type ServerActionRequest struct {
 
 // Reinstall request structure
 type ReinstallRequest struct {
-	ReinstallType  string `json:"reinstall_type"`  // "os" or "app"
+	ReinstallType  string `json:"reinstall_type"` // "os" or "app"
 	OsAppId        int    `json:"os_app_id"`
-	Authentication string `json:"authentication"`  // "ssh" or "password"
+	Authentication string `json:"authentication"` // "ssh" or "password"
 	SshKey         string `json:"ssh_key,omitempty"`
 }
 
