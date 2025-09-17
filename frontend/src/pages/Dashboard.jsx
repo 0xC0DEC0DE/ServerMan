@@ -1,25 +1,20 @@
 import { useEffect, useState } from 'react';
 import ServerList from '../components/ServerList';
+import { checkAuthentication } from '../utils/auth';
 
 export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/user');
-        if (!res.ok) return;
-        const user = await res.json();
-
-        if (user.groups && user.groups.includes('callowaysutton')) {
-          setIsAdmin(true);
-        }
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
+    const authenticate = async () => {
+      const userData = await checkAuthentication();
+      if (userData && userData.groups && userData.groups.includes('callowaysutton')) {
+        setIsAdmin(true);
       }
+      // If authentication fails, checkAuthentication will handle the redirect
     };
 
-    fetchUser();
+    authenticate();
   }, []);
 
   return (

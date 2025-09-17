@@ -1,14 +1,39 @@
 import { useEffect, useState } from 'react';
 import ServerItem from './ServerItem';
+import { clearCookiesAndRedirectHome, redirectToLogin } from '../utils/auth';
 
 export default function ServerList() {
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to handle auth failures in API calls
+  const handleAuthFailure = (response) => {
+    if (response.status === 401 || response.status === 403) {
+      // Check if user has cookies to decide where to redirect
+      const hasAuthCookies = document.cookie.includes('auth-session');
+      if (hasAuthCookies) {
+        clearCookiesAndRedirectHome();
+      } else {
+        redirectToLogin();
+      }
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     async function fetchServers() {
       try {
         const res = await fetch('/api/servers', { credentials: 'include' });
+        
+        if (handleAuthFailure(res)) {
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch servers');
+        }
+
         const data = await res.json();
 
         // Remove any servers with a "domainstatus" other than "Active" or an empty "domain"

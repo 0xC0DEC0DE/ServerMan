@@ -1,25 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { checkAuthentication } from '../utils/auth';
 
 export default function Navbar() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/user', { credentials: 'include' });
-        if (!res.ok) return;
-        const user = await res.json();
-
-        if (user.groups && user.groups.includes('callowaysutton')) {
+    const authenticate = async () => {
+      const result = await checkAuthentication();
+      if (result) {
+        setUserData(result);
+        if (result.groups && result.groups.includes('callowaysutton')) {
           setIsAdmin(true);
         }
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
       }
+      // If authentication fails, checkAuthentication will handle the redirect
     };
 
-    fetchUser();
+    authenticate();
   }, []);
 
   return (

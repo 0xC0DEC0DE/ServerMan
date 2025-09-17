@@ -1,32 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { checkAuthentication } from '../utils/auth';
 
 function ProtectedRoute({ children }) {
   const [auth, setAuth] = useState(null);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/user', { credentials: 'include' })
-      .then((res) => {
-        if (res.status === 200) {
-          return res.json();
-        } else {
-          setAuth(false);
-          return null;
-        }
-      })
-      .then((data) => {
-        if (data) {
-          setAuth(true); // Optionally check data for more validation
-        }
-      })
-      .catch(() => setAuth(false));
+    const authenticate = async () => {
+      const result = await checkAuthentication();
+      if (result) {
+        setAuth(true);
+        setUserData(result);
+      } else {
+        // checkAuthentication will handle clearing cookies and redirecting
+        // No need to set auth state as the page will redirect
+        return;
+      }
+    };
+
+    authenticate();
   }, []);
 
   if (auth === null) {
-    return <div>Loading...</div>;
+    return (
+      <div className="has-text-centered" style={{ padding: '2rem' }}>
+        <div className="loader"></div>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
-  return auth ? children : <Navigate to="/login" replace />;
+  return auth ? children : null;
 }
 
 export default ProtectedRoute;

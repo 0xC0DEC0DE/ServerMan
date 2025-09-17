@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import DynamicVNCViewer from './VncConsole';
 import ReinstallModal from './ReinstallModal';
 import SnapshotModal from './SnapshotModal';
+import { clearCookiesAndRedirectHome, redirectToLogin } from '../utils/auth';
 
 export default function ServerItem({ serverId, serverName }) {
   const [details, setDetails] = useState(null);
@@ -18,6 +19,21 @@ export default function ServerItem({ serverId, serverName }) {
   const [showReinstallModal, setShowReinstallModal] = useState(false);
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
 
+  // Helper function to handle auth failures in API calls
+  const handleAuthFailure = (response) => {
+    if (response.status === 401 || response.status === 403) {
+      // Check if user has cookies to decide where to redirect
+      const hasAuthCookies = document.cookie.includes('auth-session');
+      if (hasAuthCookies) {
+        clearCookiesAndRedirectHome();
+      } else {
+        redirectToLogin();
+      }
+      return true;
+    }
+    return false;
+  };
+
   // Fetch server details
   useEffect(() => {
     async function fetchDetails() {
@@ -25,6 +41,15 @@ export default function ServerItem({ serverId, serverName }) {
         const res = await fetch(`/api/server/${serverId}`, {
           credentials: 'include',
         });
+        
+        if (handleAuthFailure(res)) {
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch server details');
+        }
+
         const data = await res.json();
         setDetails(data);
       } catch (err) {
@@ -40,9 +65,20 @@ export default function ServerItem({ serverId, serverName }) {
   useEffect(() => {
     const pingServer = async () => {
       if (details && details.ip) {
-        const res = await fetch(`/api/ping/${details.ip}`);
-        const data = await res.json();
-        setPingStatus(data.status);
+        try {
+          const res = await fetch(`/api/ping/${details.ip}`, { credentials: 'include' });
+          
+          if (handleAuthFailure(res)) {
+            return;
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            setPingStatus(data.status);
+          }
+        } catch (err) {
+          console.error('Error pinging server IP', err);
+        }
       }
     };
     pingServer();
@@ -53,9 +89,20 @@ export default function ServerItem({ serverId, serverName }) {
   useEffect(() => {
     const pingServerName = async () => {
       if (serverName) {
-        const res = await fetch(`/api/ping/${serverName}`);
-        const data = await res.json();
-        setServerNameStatus(data.status);
+        try {
+          const res = await fetch(`/api/ping/${serverName}`, { credentials: 'include' });
+          
+          if (handleAuthFailure(res)) {
+            return;
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            setServerNameStatus(data.status);
+          }
+        } catch (err) {
+          console.error('Error pinging server name', err);
+        }
       }
     };
     pingServerName();
@@ -76,6 +123,10 @@ export default function ServerItem({ serverId, serverName }) {
         method: 'POST',
         credentials: 'include',
       });
+
+      if (handleAuthFailure(response)) {
+        return;
+      }
 
       const result = await response.json();
       
@@ -108,6 +159,10 @@ export default function ServerItem({ serverId, serverName }) {
         method: 'POST',
         credentials: 'include',
       });
+
+      if (handleAuthFailure(response)) {
+        return;
+      }
 
       const result = await response.json();
       
@@ -142,6 +197,10 @@ export default function ServerItem({ serverId, serverName }) {
         credentials: 'include',
       });
 
+      if (handleAuthFailure(response)) {
+        return;
+      }
+
       const result = await response.json();
       
       if (response.ok) {
@@ -162,6 +221,15 @@ export default function ServerItem({ serverId, serverName }) {
       const res = await fetch(`/api/server/${serverId}/credentials`, {
         credentials: 'include',
       });
+      
+      if (handleAuthFailure(res)) {
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch credentials');
+      }
+
       const data = await res.json();
       const password = data.vnc_password;
       if (!password) {
@@ -171,6 +239,7 @@ export default function ServerItem({ serverId, serverName }) {
       setShowConsole(true);
     } catch (err) {
       console.error('Error fetching credentials', err);
+      alert('Failed to fetch console credentials');
     } finally {
       setLoadingCreds(false);
     }

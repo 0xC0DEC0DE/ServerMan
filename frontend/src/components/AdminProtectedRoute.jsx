@@ -1,41 +1,42 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
+import { checkAuthentication } from '../utils/auth';
 
 function AdminProtectedRoute({ children }) {
   const [auth, setAuth] = useState(null);
   const [hasAdminAccess, setHasAdminAccess] = useState(false);
 
   useEffect(() => {
-    fetch('/api/user', { credentials: 'include' })
-      .then((res) => {
-        if (res.status === 200) {
-          return res.json();
-        } else {
-          setAuth(false);
-          return null;
-        }
-      })
-      .then((data) => {
-        if (data) {
-          setAuth(true);
-          // Check if user has admin access ("*" or "callowaysutton" groups)
-          const groups = data.groups;
-          const isAdmin = groups.includes('*') || groups.includes('callowaysutton');
-          setHasAdminAccess(isAdmin);
-        }
-      })
-      .catch(() => {
-        setAuth(false);
-        setHasAdminAccess(false);
-      });
+    const authenticate = async () => {
+      const userData = await checkAuthentication();
+      if (userData) {
+        setAuth(true);
+        // Check if user has admin access ("*" or "callowaysutton" groups)
+        const groups = userData.groups || [];
+        const isAdmin = groups.includes('*') || groups.includes('callowaysutton');
+        setHasAdminAccess(isAdmin);
+      } else {
+        // checkAuthentication will handle clearing cookies and redirecting
+        // No need to set auth state as the page will redirect
+        return;
+      }
+    };
+
+    authenticate();
   }, []);
 
   if (auth === null) {
-    return <div className="has-text-centered"><p>Loading...</p></div>;
+    return (
+      <div className="has-text-centered" style={{ padding: '2rem' }}>
+        <div className="loader"></div>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (!auth) {
-    return <Navigate to="/login" replace />;
+    // This shouldn't happen as checkAuthentication redirects, but just in case
+    return null;
   }
 
   if (!hasAdminAccess) {

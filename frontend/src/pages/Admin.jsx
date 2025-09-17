@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import { checkAuthentication, clearCookiesAndRedirectHome, redirectToLogin } from '../utils/auth';
 
 export default function Admin() {
   const [users, setUsers] = useState([]);
@@ -9,13 +11,40 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Helper function to handle auth failures in API calls
+  const handleAuthFailure = (response) => {
+    if (response.status === 401 || response.status === 403) {
+      // Check if user has cookies to decide where to redirect
+      const hasAuthCookies = document.cookie.includes('auth-session');
+      if (hasAuthCookies) {
+        clearCookiesAndRedirectHome();
+      } else {
+        redirectToLogin();
+      }
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
-    fetchUsers();
+    // Verify authentication before loading the page
+    const authenticate = async () => {
+      const userData = await checkAuthentication();
+      if (userData) {
+        fetchUsers();
+      }
+      // If authentication fails, checkAuthentication will handle the redirect
+    };
+
+    authenticate();
   }, []);
 
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/admin/users', { credentials: 'include' });
+      if (handleAuthFailure(response)) {
+        return;
+      }
       if (response.ok) {
         const data = await response.json();
         setUsers(data.data || []);
@@ -47,6 +76,10 @@ export default function Admin() {
         body: JSON.stringify(newUser),
       });
 
+      if (handleAuthFailure(response)) {
+        return;
+      }
+
       if (response.ok) {
         setSuccess('User added successfully');
         setNewUser({ email: '', groups: [] });
@@ -71,6 +104,10 @@ export default function Admin() {
         credentials: 'include',
         body: JSON.stringify({ groups }),
       });
+
+      if (handleAuthFailure(response)) {
+        return;
+      }
 
       if (response.ok) {
         setSuccess('User groups updated successfully');
@@ -98,6 +135,10 @@ export default function Admin() {
         method: 'DELETE',
         credentials: 'include',
       });
+
+      if (handleAuthFailure(response)) {
+        return;
+      }
 
       if (response.ok) {
         setSuccess('User deleted successfully');
