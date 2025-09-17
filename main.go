@@ -51,6 +51,15 @@ func main() {
 	gob.Register(map[string]interface{}{})
 	store := cookie.NewStore([]byte("secret"))
 
+	// Set cookie options to expire in 1 hour to match backend session expiration
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   3600, // 1 hour in seconds
+		HttpOnly: true,
+		Secure:   true, // Set to true if using HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	// Auth routes
 	r.Use(sessions.Sessions("auth-session", store))
 	r.GET("/login", auth.Login(auth_client))
